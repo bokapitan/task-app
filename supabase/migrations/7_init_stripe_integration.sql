@@ -1,14 +1,15 @@
 -- Enable Stripe integration
 create extension if not exists wrappers with schema extensions;
 create foreign data wrapper stripe_wrapper
-  handler stripe_fdw_handler
-  validator stripe_fdw_validator;
+  handler extensions.stripe_fdw_handler
+  validator extensions.stripe_fdw_validator;
 
+-- Create the foreign server that connects to Stripe
 create server stripe_server
-foreign data wrapper stripe_wrapper
-options (
-  api_key_name 'stripe'
-);
+  foreign data wrapper stripe_wrapper
+  options (
+    api_key_id 'stripe'  -- This tells it to look for the key named 'stripe' in the Vault
+  );
 
 create schema stripe;
 
