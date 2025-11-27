@@ -1,12 +1,12 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import OpenAI from "npm:openai";
+import { GoogleGenerativeAI } from "npm:@google/generative-ai"; // CHANGED: Using Google
 
 // Load environment variables
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY"); // CHANGED: Using Gemini Key
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -56,24 +56,27 @@ Deno.serve(async (req) => {
 
     if (error) throw error;
 
-    // Initialize OpenAI
-    const openai = new OpenAI({
-      apiKey: OPENAI_API_KEY,
-    });
+    // --- CHANGED SECTION STARTS HERE ---
+    // Initialize Gemini
+    if (!GEMINI_API_KEY) {
+      console.error("Missing GEMINI_API_KEY");
+      throw new Error("Server configuration error: Missing AI Key");
+    }
+    
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
-    // Get label suggestion from OpenAI
+    // Get label suggestion from Gemini
     const prompt = `Based on this task title: "${title}" and description: "${description}", suggest ONE of these labels: work, personal, priority, shopping, home. Reply with just the label word and nothing else.`;
 
-    const completion = await openai.chat.completions.create({
-      messages: [{ role: "user", content: prompt }],
-      model: "gpt-4o-mini",
-      temperature: 0.3,
-      max_tokens: 16,
-    });
-
-    const suggestedLabel = completion.choices[0].message.content
-      ?.toLowerCase()
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    
+    // Extract text safely
+    const suggestedLabel = response.text()
+      .toLowerCase()
       .trim();
+    // --- CHANGED SECTION ENDS HERE ---
 
     console.log(`✨ AI Suggested Label: ${suggestedLabel}`);
 
@@ -85,7 +88,7 @@ Deno.serve(async (req) => {
     const { data: updatedTask, error: updateError } = await supabaseClient
       .from("tasks")
       .update({ label })
-      .eq("task_id", data.task_id)
+      .eq("task_id", data.task_id) // make sure to use data.task_id from the creation step
       .select()
       .single();
 
