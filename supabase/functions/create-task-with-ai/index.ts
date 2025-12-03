@@ -1,12 +1,12 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { GoogleGenerativeAI } from "npm:@google/generative-ai"; // CHANGED: Using Google
+import { GoogleGenerativeAI } from "npm:@google/generative-ai";
 
 // Load environment variables
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY"); // CHANGED: Using Gemini Key
+const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,25 +25,17 @@ Deno.serve(async (req) => {
 
     console.log("🔄 Creating task with AI suggestions...");
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("No authorization header");
-    }
+    if (!authHeader) throw new Error("No authorization header");
 
-    // Initialize Supabase client
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: {
-        headers: { Authorization: authHeader },
-      },
+      global: { headers: { Authorization: authHeader } },
     });
 
-    // Get user session
-    const {
-      data: { user },
-    } = await supabaseClient.auth.getUser();
+    const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) throw new Error("No user found");
 
-    // Create the task
-    const { data, error } = await supabaseClient
+    // 1. Create the Main Task
+    const { data: taskData, error: taskError } = await supabaseClient
       .from("tasks")
       .insert({
         title,
@@ -54,52 +46,67 @@ Deno.serve(async (req) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (taskError) throw taskError;
 
-    // --- CHANGED SECTION STARTS HERE ---
-    // Initialize Gemini
-    if (!GEMINI_API_KEY) {
-      console.error("Missing GEMINI_API_KEY");
-      throw new Error("Server configuration error: Missing AI Key");
-    }
-    
+    // 2. Initialize Gemini
+    if (!GEMINI_API_KEY) throw new Error("Missing GEMINI_API_KEY");
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+    // Using the flash model because it is fast and cheap
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
 
-    // Get label suggestion from Gemini
-    const prompt = `Based on this task title: "${title}" and description: "${description}", suggest ONE of these labels: work, personal, priority, shopping, home. Reply with just the label word and nothing else.`;
+    // --- NEW: Better Prompt ---
+    // We explicitly ask for JSON so we can parse it easily
+    const prompt = `
+      You are a helpful assistant. 
+      Task Title: "${title}"
+      Task Description: "${description}"
+      
+      Please generate a JSON object with two fields:
+      1. "label": ONE of these exact words: [work, personal, priority, shopping, home].
+      2. "subtasks": An array of 3 to 5 short strings, representing actionable steps to complete this task.
+      
+      Return ONLY the JSON. No markdown formatting.
+    `;
 
     const result = await model.generateContent(prompt);
-    const response = await result.response;
+    const responseText = result.response.text();
+
+    // --- NEW: Parse the JSON ---
+    // Gemini sometimes wraps JSON in markdown blocks like `json ... `, so we clean it.
+    const cleanJson = responseText.replace(/```json|```/g, '').trim();
+    const aiData = JSON.parse(cleanJson);
     
-    // Extract text safely
-    const suggestedLabel = response.text()
-      .toLowerCase()
-      .trim();
-    // --- CHANGED SECTION ENDS HERE ---
+    console.log("✨ AI Response:", aiData);
 
-    console.log(`✨ AI Suggested Label: ${suggestedLabel}`);
+    const suggestedLabel = aiData.label?.toLowerCase() || "personal";
+    const subtasks = aiData.subtasks || [];
 
-    // Validate the label
-    const validLabels = ["work", "personal", "priority", "shopping", "home"];
-    const label = validLabels.includes(suggestedLabel) ? suggestedLabel : null;
-
-    // Update the task with the suggested label
-    const { data: updatedTask, error: updateError } = await supabaseClient
+    // 3. Update the Main Task with the Label
+    await supabaseClient
       .from("tasks")
-      .update({ label })
-      .eq("task_id", data.task_id) // make sure to use data.task_id from the creation step
-      .select()
-      .single();
+      .update({ label: suggestedLabel })
+      .eq("task_id", taskData.task_id);
 
-    if (updateError) throw updateError;
+    // --- NEW: Insert Subtasks ---
+    if (subtasks.length > 0) {
+      const subtaskRows = subtasks.map((step: string) => ({
+        task_id: taskData.task_id, // Link to the parent task
+        title: step,
+        is_completed: false
+      }));
 
-    return new Response(JSON.stringify(updatedTask), {
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
+      const { error: subtaskError } = await supabaseClient
+        .from("subtasks")
+        .insert(subtaskRows);
+
+      if (subtaskError) console.error("Error saving subtasks:", subtaskError);
+    }
+
+    // Return the updated task (and maybe the subtasks if you wanted to show them immediately)
+    return new Response(JSON.stringify({ ...taskData, label: suggestedLabel, subtasks }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
   } catch (error) {
     console.error("Error in create-task-with-ai:", error.message);
     return new Response(JSON.stringify({ error: error.message }), {
