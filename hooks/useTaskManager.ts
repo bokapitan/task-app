@@ -40,7 +40,7 @@ export function useTaskManager(taskId?: string): UseTaskManagerReturn {
       try {
         const { data: task, error } = await supabase
           .from("tasks")
-          .select("*")
+          .select("*, subtasks(*)")
           .eq("task_id", taskId)
           .single();
 
@@ -154,7 +154,7 @@ export function useTaskManager(taskId?: string): UseTaskManagerReturn {
 
       const { data, error } = await supabase
         .from("tasks")
-        .select("*")
+        .select("*, subtasks(*)")
         .eq("user_id", session!.user.id)
         .order("created_at", { ascending: false });
 
