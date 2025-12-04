@@ -74,14 +74,20 @@ export function useTaskManager(taskId?: string): UseTaskManagerReturn {
       const taskData = taskToSave || task;
       if (!taskData) throw new Error("No task data to save");
 
+      // --- FIX STARTS HERE ---
+      // We separate 'subtasks' from the rest of the data.
+      // 'cleanData' will hold everything EXCEPT subtasks.
+      const { subtasks, ...cleanData } = taskData; 
+
       const { error } = await supabase
         .from("tasks")
         .update({
-          ...taskData,
+          ...cleanData,
           due_date: date?.toISOString().split("T")[0],
           updated_at: new Date().toISOString(),
         })
         .eq("task_id", taskData.task_id);
+      // --- FIX ENDS HERE ---
 
       if (error) throw error;
     } catch (error: any) {
