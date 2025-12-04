@@ -23,6 +23,7 @@ export interface TasksOperations {
   deleteTask: (taskId: string) => Promise<void>;
   toggleTaskComplete: (taskId: string, completed: boolean) => Promise<void>;
   refreshTasks: () => Promise<void>;
+  toggleSubtaskComplete: (subtaskId: string, completed: boolean) => Promise<void>;
 }
 
 export type UseTaskManagerReturn = TaskState &
