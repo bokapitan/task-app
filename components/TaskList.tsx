@@ -12,20 +12,15 @@ interface TaskListProps {
   tasks: Task[];
   onDelete: (taskId: string) => Promise<void>;
   onToggleComplete: (taskId: string, completed: boolean) => Promise<void>;
+  // 👇 YOU ARE ADDING THIS LINE (The Contract)
+  onToggleSubtask: (subtaskId: string, completed: boolean) => Promise<void>; 
 }
 
-const TaskList = ({ tasks, onDelete, onToggleComplete }: TaskListProps) => {
+// 👇 YOU ARE ADDING 'onToggleSubtask' TO THIS LIST OF ARGUMENTS
+const TaskList = ({ tasks, onDelete, onToggleComplete, onToggleSubtask }: TaskListProps) => {
   return (
     <Table>
-      <TableHeader>
-        <TableRow className="hover:bg-transparent">
-          <TableHead className="w-[50px] py-2"></TableHead>
-          <TableHead className="py-2">Title</TableHead>
-          <TableHead className="w-[100px] py-2">Label</TableHead>
-          <TableHead className="w-[120px] py-2">Due Date</TableHead>
-          <TableHead className="w-[100px] text-right py-2">Actions</TableHead>
-        </TableRow>
-      </TableHeader>
+      {/* ... header code ... */}
       <TableBody>
         {tasks.map((task) => (
           <TaskRow
@@ -33,6 +28,8 @@ const TaskList = ({ tasks, onDelete, onToggleComplete }: TaskListProps) => {
             task={task}
             onDelete={onDelete}
             onToggleComplete={onToggleComplete}
+            // 👇 AND YOU ARE ADDING THIS LINE (The Handoff)
+            onToggleSubtask={onToggleSubtask} 
           />
         ))}
       </TableBody>

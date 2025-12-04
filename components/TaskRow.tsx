@@ -12,9 +12,12 @@ interface TaskRowProps {
   task: Task;
   onDelete: (taskId: string) => void;
   onToggleComplete: (taskId: string, completed: boolean) => void;
+  // 👇 YOU ARE ADDING THIS LINE (The Contract Update)
+  onToggleSubtask: (subtaskId: string, completed: boolean) => void;
 }
 
-const TaskRow = ({ task, onDelete, onToggleComplete }: TaskRowProps) => {
+const TaskRow = ({ task, onDelete, onToggleComplete, onToggleSubtask }: TaskRowProps) => {
+
   // --- NEW: State to handle expanding the subtasks view ---
   const [isExpanded, setIsExpanded] = useState(false);
   const hasSubtasks = task.subtasks && task.subtasks.length > 0;
@@ -112,11 +115,11 @@ const TaskRow = ({ task, onDelete, onToggleComplete }: TaskRowProps) => {
                         {task.subtasks?.map((subtask) => (
                             <li key={subtask.subtask_id} className="flex items-center text-sm gap-2 bg-background p-2 rounded border">
                                 <Checkbox 
-                                    id={subtask.subtask_id}
-                                    checked={subtask.is_completed}
-                                    // Note: You'll need to create a handler for this later!
-                                    // onCheckedChange={() => toggleSubtask(subtask.subtask_id)}
-                                />
+      id={subtask.subtask_id}
+      checked={subtask.is_completed}
+      // 👇 YOU ARE CONNECTING THE WIRE HERE
+      onCheckedChange={(checked) => onToggleSubtask(subtask.subtask_id, checked as boolean)}
+  />
                                 <label 
                                     htmlFor={subtask.subtask_id}
                                     className={`cursor-pointer ${subtask.is_completed ? "line-through text-muted-foreground" : ""}`}

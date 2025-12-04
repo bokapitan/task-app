@@ -249,6 +249,40 @@ export function useTaskManager(taskId?: string): UseTaskManagerReturn {
     }
   };
 
+
+
+// Add this new function
+const toggleSubtaskComplete = async (subtaskId: string, isCompleted: boolean) => {
+  try {
+    // 1. Update Database
+    const { error } = await supabase
+      .from("subtasks")
+      .update({ is_completed: isCompleted })
+      .eq("subtask_id", subtaskId);
+
+    if (error) throw error;
+
+    // 2. Update Local State (so it checks instantly without refreshing)
+    setTasks(tasks.map(t => {
+      // If this task has the subtask we just clicked...
+      if (t.subtasks?.some(s => s.subtask_id === subtaskId)) {
+        return {
+          ...t,
+          subtasks: t.subtasks.map(s => 
+            s.subtask_id === subtaskId ? { ...s, is_completed: isCompleted } : s
+          )
+        };
+      }
+      return t;
+    }));
+    
+  } catch (error: any) {
+    console.error("Error toggling subtask:", error);
+    setError(error.message);
+  }
+};
+
+
   const refreshTasks = async () => {
     setIsLoading(true);
     await fetchTasks();
@@ -274,5 +308,6 @@ export function useTaskManager(taskId?: string): UseTaskManagerReturn {
     deleteTask,
     toggleTaskComplete,
     refreshTasks,
+    toggleSubtaskComplete,
   };
 }

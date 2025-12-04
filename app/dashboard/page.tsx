@@ -17,8 +17,15 @@ import {
 
 export default function Dashboard() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { createTask, refreshTasks, tasks, deleteTask, toggleTaskComplete } =
-    useTaskManager();
+  // Add toggleSubtaskComplete to the list inside the curly braces
+const { 
+  tasks, 
+  deleteTask, 
+  toggleTaskComplete, 
+  toggleSubtaskComplete,
+  refreshTasks,
+  createTask
+} = useTaskManager();
 
   const handleCreateTask = async (title: string, description: string) => {
     await createTask(title, description);
@@ -51,11 +58,12 @@ export default function Dashboard() {
       </div>
       {tasks.length > 0 ? (
         <div className="border rounded-md">
-          <TaskList
-            tasks={tasks}
-            onDelete={deleteTask}
-            onToggleComplete={toggleTaskComplete}
-          />
+         <TaskList 
+  tasks={tasks}
+  onDelete={deleteTask}
+  onToggleComplete={toggleTaskComplete}
+  onToggleSubtask={toggleSubtaskComplete} // <--- Add this line!
+/>
         </div>
       ) : (
         <div className="border rounded-md p-8 text-center">
