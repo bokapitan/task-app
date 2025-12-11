@@ -27,12 +27,14 @@ const {
   createTask
 } = useTaskManager();
 
-  const handleCreateTask = async (title: string, description: string) => {
-    await createTask(title, description);
-    await refreshTasks();
-    console.log(`New Task Created: ${title}`);
-    setIsDialogOpen(false);
-  };
+// Updated to accept 'useAI' as the 3rd argument
+const handleCreateTask = async (title: string, description: string, useAI: boolean) => {
+  // Pass 'useAI' to the hook function
+  await createTask(title, description, useAI);
+  await refreshTasks();
+  console.log(`New Task Created: ${title} (AI: ${useAI})`);
+  setIsDialogOpen(false);
+};
 
   return (
     <div>

@@ -21,9 +21,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { title, description } = await req.json();
+    // --- CHANGE 1: Accept 'useAI' from the request ---
+    const { title, description, useAI } = await req.json();
 
-    console.log("🔄 Creating task with AI suggestions...");
+    console.log(`🔄 Creating task: "${title}" | AI Enabled: ${useAI}`);
+    
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header");
 
@@ -34,7 +36,7 @@ Deno.serve(async (req) => {
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) throw new Error("No user found");
 
-    // 1. Create the Main Task
+    // 1. Create the Main Task (This always happens)
     const { data: taskData, error: taskError } = await supabaseClient
       .from("tasks")
       .insert({
@@ -42,20 +44,31 @@ Deno.serve(async (req) => {
         description,
         completed: false,
         user_id: user.id,
+        label: "personal", // Default label if AI doesn't run
       })
       .select()
       .single();
 
     if (taskError) throw taskError;
 
+    // --- CHANGE 2: Check if we should run AI ---
+    // If useAI is false, we stop here and return the simple task.
+    if (useAI === false) {
+      console.log("⏩ AI skipped by user request.");
+      return new Response(JSON.stringify(taskData), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ============================================================
+    //  AI LOGIC (Only runs if useAI is true)
+    // ============================================================
+    
     // 2. Initialize Gemini
     if (!GEMINI_API_KEY) throw new Error("Missing GEMINI_API_KEY");
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    // Using the flash model because it is fast and cheap
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
 
-    // --- NEW: Better Prompt ---
-    // We explicitly ask for JSON so we can parse it easily
     const prompt = `
       You are a helpful assistant. 
       Task Title: "${title}"
@@ -71,8 +84,6 @@ Deno.serve(async (req) => {
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
 
-    // --- NEW: Parse the JSON ---
-    // Gemini sometimes wraps JSON in markdown blocks like `json ... `, so we clean it.
     const cleanJson = responseText.replace(/```json|```/g, '').trim();
     const aiData = JSON.parse(cleanJson);
     
@@ -87,10 +98,10 @@ Deno.serve(async (req) => {
       .update({ label: suggestedLabel })
       .eq("task_id", taskData.task_id);
 
-    // --- NEW: Insert Subtasks ---
+    // 4. Insert Subtasks
     if (subtasks.length > 0) {
       const subtaskRows = subtasks.map((step: string) => ({
-        task_id: taskData.task_id, // Link to the parent task
+        task_id: taskData.task_id, 
         title: step,
         is_completed: false
       }));
@@ -102,7 +113,7 @@ Deno.serve(async (req) => {
       if (subtaskError) console.error("Error saving subtasks:", subtaskError);
     }
 
-    // Return the updated task (and maybe the subtasks if you wanted to show them immediately)
+    // Return the updated task with AI data
     return new Response(JSON.stringify({ ...taskData, label: suggestedLabel, subtasks }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

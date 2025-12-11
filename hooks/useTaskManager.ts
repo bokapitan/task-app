@@ -175,38 +175,40 @@ export function useTaskManager(taskId?: string): UseTaskManagerReturn {
     }
   };
 
-  const createTask = async (title: string, description: string) => {
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+// 1. Add 'useAI' to the arguments
+const createTask = async (title: string, description: string, useAI: boolean) => {
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
-      const response = await fetch(FUNCTION_ENDPOINT, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session!.access_token}`,
-        },
-        body: JSON.stringify({ title, description }),
-      });
+    const response = await fetch(FUNCTION_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session!.access_token}`,
+      },
+      // 2. Send 'useAI' in the body
+      body: JSON.stringify({ title, description, useAI }),
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to create task");
-      }
-
-      const taskData = await response.json();
-      if (!taskData) throw new Error("No data returned from server");
-
-      setTasks([taskData, ...tasks]);
-      setError(null);
-      return taskData;
-    } catch (error: any) {
-      console.error("Error creating task:", error);
-      setError(error.message);
-      throw error;
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to create task");
     }
-  };
+
+    const taskData = await response.json();
+    if (!taskData) throw new Error("No data returned from server");
+
+    setTasks([taskData, ...tasks]);
+    setError(null);
+    return taskData;
+  } catch (error: any) {
+    console.error("Error creating task:", error);
+    setError(error.message);
+    throw error;
+  }
+};
 
   const deleteTask = async (taskIdToDelete: string) => {
     try {

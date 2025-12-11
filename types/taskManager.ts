@@ -19,10 +19,11 @@ export interface TasksState extends BaseState {
 }
 
 export interface TasksOperations {
-  createTask: (title: string, description: string) => Promise<Task>;
+  createTask: (title: string, description: string, useAI: boolean) => Promise<Task>;
   deleteTask: (taskId: string) => Promise<void>;
   toggleTaskComplete: (taskId: string, completed: boolean) => Promise<void>;
   refreshTasks: () => Promise<void>;
+  // This is the missing line causing your error:
   toggleSubtaskComplete: (subtaskId: string, completed: boolean) => Promise<void>;
 }
 

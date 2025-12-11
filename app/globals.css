@@ -4,74 +4,38 @@
 
 @layer base {
   :root {
-    /* Base - Clean White */
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    /* --- THE BASE: Deep Sci-Fi Charcoal --- */
+    --background: 240 10% 3.9%; /* #09090b (Almost Black) */
+    --foreground: 0 0% 98%;     /* #fafafa (White text) */
 
-    /* Card - Slightly off-white for depth */
-    --card: 0 0% 99%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-
-    /* Primary - The "Mint" Accent */
-    /* Hue: 160 (Mint), Saturation: 84%, Lightness: 39% */
-    --primary: 160 84% 39%; 
-    --primary-foreground: 0 0% 100%; /* White text on mint buttons */
-
-    /* Secondary - Light Grey for soft contrast */
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-
-    /* Muted - For subtle text */
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-
-    /* Accent - For hover states (Minty-grey) */
-    --accent: 160 20% 96%;
-    --accent-foreground: 240 5.9% 10%;
-
-    /* Destructive - Soft Red */
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-
-    /* Borders & Inputs - Crisp Grey */
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 160 84% 39%; /* Focus ring is mint */
-
-    --radius: 0.75rem; /* Slightly rounder corners for a modern feel */
-  }
-
-  .dark {
-    /* Dark Mode - Deep Slate/Black */
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-
-    --card: 240 10% 6%; /* Slightly lighter black */
+    /* --- CARDS: Slightly Lighter for Depth --- */
+    --card: 240 10% 6.5%;       /* #111113 */
     --card-foreground: 0 0% 98%;
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
 
-    /* Dark Mode Mint - Slightly brighter to pop against black */
-    --primary: 160 60% 45%; 
-    --primary-foreground: 240 5.9% 10%;
+    /* --- THE ACCENT: Neon Mint --- */
+    --primary: 160 84% 39%;     /* #10b981 (Bright Mint) */
+    --primary-foreground: 240 5.9% 10%; /* Dark text on mint buttons */
 
-    --secondary: 240 3.7% 15.9%;
+    /* --- SECONDARY UI ELEMENTS --- */
+    --secondary: 240 3.7% 15.9%; /* Dark Grey */
     --secondary-foreground: 0 0% 98%;
 
     --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
+    --muted-foreground: 240 5% 64.9%; /* Dimmed text */
 
-    --accent: 160 30% 15%; /* Dark Mint tint */
+    --accent: 240 3.7% 15.9%;
     --accent-foreground: 0 0% 98%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 3.7% 15.9%;
+    --border: 240 3.7% 15.9%;   /* Dark Borders */
     --input: 240 3.7% 15.9%;
-    --ring: 160 60% 45%;
+    --ring: 160 84% 39%;        /* Mint Focus Rings */
+
+    --radius: 0.5rem;
   }
 }
 
@@ -82,4 +46,20 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+/* --- THE SCI-FI PATTERN --- */
+.bg-sci-fi-grid {
+  /* Use the dark background variable */
+  background-color: hsl(var(--background));
+  
+  /* Force a bright Mint color for the dots so you can definitely see them */
+  background-image: radial-gradient(#10b981 1.5px, transparent 1.5px);
+  
+  /* Increase spacing slightly */
+  background-size: 30px 30px; 
+  
+  /* Remove the mask for now so we can prove it works */
+  /* mask-image: linear-gradient(to bottom, black 40%, transparent 100%); */
+  
+  opacity: 0.25; /* Increased visibility */
 }
